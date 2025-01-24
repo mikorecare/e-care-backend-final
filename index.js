@@ -61,6 +61,11 @@ const doctorRoutes = require('./routes/doctor');
 const appointmentRoutes = require('./routes/appointment'); 
 const feedbackRoutes = require('./routes/feedback'); 
 const searchRoutes = require('./routes/search');
+const adminUserRoutes = require('./routes/admin/user');
+const adminDepartmentRoutes = require('./routes/admin/department');
+const adminAppointmentRoutes = require('./routes/admin/appointment');
+const adminFeedbackRoutes = require('./routes/admin/feedback');
+const adminDoctorRoutes = require('./routes/admin/doctor');
 
 
 // Define API routes
@@ -69,7 +74,12 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/doctors', doctorRoutes); 
 app.use('/api/appointments', appointmentRoutes); 
 app.use('/api/feedbacks', feedbackRoutes); 
-app.use('/api/search', searchRoutes); 
+app.use('/api/search', searchRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/departments', adminDepartmentRoutes);
+app.use('/api/admin/appointments', adminAppointmentRoutes);
+app.use('/api/admin/feedbacks', adminFeedbackRoutes);
+app.use('/api/admin/doctors', adminDoctorRoutes);
 
 // Import the notification cron job
 require('./cronJobs/notificationCron');
