@@ -10,6 +10,7 @@ const departmentSchema = new mongoose.Schema({
     mimeType: String,
     size: Number,
     uploadDate: { type: Date, default: Date.now },
+    _id: mongoose.Schema.Types.ObjectId
   },
 });
 

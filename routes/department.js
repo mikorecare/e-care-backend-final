@@ -55,6 +55,8 @@ router.get('/', async (req, res) => {
   try {
     const departments = await Department.find();
     res.json(departments);
+
+    console.log(departments);
   } catch (error) {
     console.error('Error retrieving departments:', error);
     res.status(500).json({ error: 'Failed to retrieve departments' });
@@ -167,7 +169,7 @@ router.put('/:id', upload.single('image'), async (req, res) => {
         };
 
         const updatedDepartment = await department.save();
-        res.json(updatedDepartment);
+        res.status(200).json(updatedDepartment);
       });
 
       uploadStream.on('error', (error) => {

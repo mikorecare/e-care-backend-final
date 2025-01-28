@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Appointment = require('../../models/appointment');
-const authMiddleware = require('../middleware/authMiddleware'); // If you use JWT auth
+const authMiddleware = require('../../middleware/authMiddleware'); // If you use JWT auth
 
 // Create an appointment
 router.post('/', authMiddleware, async (req, res) => {

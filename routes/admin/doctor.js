@@ -3,23 +3,32 @@ const multer = require('multer');
 const Doctor = require('../../models/doctor');
 const Department = require('../../models/department'); // Import the Department model
 const path = require('path');
+const { Readable } = require("stream");
+const fs = require("fs");
+const mongoose = require("mongoose");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, './uploads');
+    cb(null, "./uploads");
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single("image");
+
 const router = express.Router();
 
 // CREATE: Add a doctor
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', upload, async (req, res) => {
   const { name, specialization, departments } = req.body;
 
+  console.log(req.body);
+  console.log(req.file);
   if (!name || !specialization || !departments) {
     return res
       .status(400)
@@ -50,31 +59,62 @@ router.post('/', upload.single('image'), async (req, res) => {
         .json({ error: 'One or more departments are invalid' });
     }
 
-    const doctorData = new Doctor({
+    let doctorData = new Doctor({
       name,
       specialization,
       departments: departmentIds,
     });
 
-    if (req.file) {
-      doctorData.image = {
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        path: req.file.path,
-        size: req.file.size,
-      };
-    }
+  if (req.file) {
+    const fileBuffer = fs.readFileSync(req.file.path);
 
+    const gfs = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "uploads",
+    });
+
+    const readableStream = new Readable();
+    readableStream.push(fileBuffer);
+    readableStream.push(null);
+
+    const uploadStream = gfs.openUploadStream(req.file.filename, {
+      contentType: req.file.mimetype,
+    });
+
+    readableStream.pipe(uploadStream);
+
+    uploadStream.on("finish", async () => {
+      const fileId = uploadStream.id;
+
+       doctorData.image = {
+        filename: uploadStream.filename,
+        originalName: req.file.originalname,
+        mimeType: uploadStream.contentType,
+        size: uploadStream.length,
+        uploadDate: uploadStream.uploadDate,
+        _id: new mongoose.Types.ObjectId(fileId),
+      };
+
+      const savedDoctor = await doctorData.save();
+      res.json(savedDoctor);
+    });
+
+    uploadStream.on("error", (error) => {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "File upload failed" });
+    });
+  } else {
+    
     const savedDoctor = await doctorData.save();
     res.json(savedDoctor);
+  }
+
   } catch (error) {
     console.error('Error adding doctor:', error);
     res.status(500).json({ error: 'Failed to add doctor' });
   }
 });
 
-router.put('/', upload.single('image'), async (req, res) => {
+router.put('/', upload, async (req, res) => {
   const { name, specialization, departments, _id } = req.body;
   console.log(req.body);
   try {
