@@ -4,6 +4,8 @@
 // // const User = require('../models/user');
 // // const bcrypt = require('bcrypt');
 // // const dotenv = require('dotenv');
+const router = require('express').Router();
+const authMiddleware = require("../../middleware/authMiddleware");
 
 // // dotenv.config();
 
@@ -172,4 +174,6 @@
 //   }
 // });
 
-// module.exports = router;
+router.post('/', authMiddleware)
+
+module.exports = router;

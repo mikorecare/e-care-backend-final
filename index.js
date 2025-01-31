@@ -5,25 +5,23 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
+const http = require('http');
 const { GridFSBucket } = require('mongodb');
-
+const { Server } = require("socket.io");
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", 
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  }
+});
+
 app.use(cors()); 
-
 app.use(express.json());
-
-
-// Enable CORS
-const corsOptions = {
-  // origin: ['http://192.1.113.150:64535', 'http://localhost:54122', 'capacitor://localhost'], 
-  origin: ['http://192.168.29.84:64535', 'http://192.168.29.84:54122', 'capacitor://192.168.29.84'], 
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
-app.use(cors(corsOptions));
 
 // // Serve static files
 // app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -54,6 +52,7 @@ app.get('/uploads/:filename', async (req, res) => {
   }
 });
 
+
 // Import routes
 const userRoutes = require('./routes/user'); 
 const departmentRoutes = require('./routes/department'); 
@@ -66,7 +65,8 @@ const adminDepartmentRoutes = require('./routes/admin/department');
 const adminAppointmentRoutes = require('./routes/admin/appointment');
 const adminFeedbackRoutes = require('./routes/admin/feedback');
 const adminDoctorRoutes = require('./routes/admin/doctor');
-
+const authMiddleware = require('./middleware/authMiddleware');
+const authAdminRoutes = require('./routes/admin/auth');
 
 // Define API routes
 app.use('/api/users', userRoutes); 
@@ -80,10 +80,30 @@ app.use('/api/admin/departments', adminDepartmentRoutes);
 app.use('/api/admin/appointments', adminAppointmentRoutes);
 app.use('/api/admin/feedbacks', adminFeedbackRoutes);
 app.use('/api/admin/doctors', adminDoctorRoutes);
+app.use('/api/admin/auth', authAdminRoutes);
 
 // Import the notification cron job
 require('./cronJobs/notificationCron');
 
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  socket.on("message", (data) => {
+    console.log("Message received:", data);
+    io.emit("message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("A user disconnected:", socket.id);
+  });
+});
+
+app.post('/api/admin/notify/socket', (req, res) => {
+  const newAppointment = req.body;
+  io.emit('message', "Appointment Complete");
+  console.log("hi");
+  res.status(201).json({ message: 'Appointment Created', newAppointment });
+});
 
 // Root route
 app.get('/', (req, res) => {

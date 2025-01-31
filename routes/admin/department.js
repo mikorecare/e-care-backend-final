@@ -5,6 +5,7 @@ const path = require("path");
 const mongoose = require("mongoose");
 const { Readable } = require("stream");
 const fs = require("fs");
+const Appointment = require("../../models/appointment");
 
 // Set up Multer for file uploads
 const storage = multer.diskStorage({
@@ -105,12 +106,28 @@ router.post("/", upload, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const departments = await Department.find();
-    res.json(departments);
+
+    const departmentsWithAppointments = await Promise.all(
+      departments.map(async (department) => {
+        const totalAppointments = await Appointment.countDocuments({
+          department: department._id,
+          status: "upcoming",
+        });
+
+        return {
+          ...department.toObject(),
+          totalAppointments,
+        };
+      })
+    );
+
+    res.json(departmentsWithAppointments);
   } catch (error) {
     console.error("Error retrieving departments:", error);
     res.status(500).json({ error: "Failed to retrieve departments" });
   }
 });
+
 
 // READ: Get a single department by ID
 router.get("/:id", async (req, res) => {

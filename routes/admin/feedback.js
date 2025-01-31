@@ -4,7 +4,21 @@ const router = express.Router();
 const Feedback = require('../../models/feedback');
 const Department = require('../../models/department'); 
 const authMiddleware = require('../../middleware/authMiddleware');
+const multer = require("multer");
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "./uploads");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single("image");
 // Create feedback
 router.post('/', authMiddleware, async (req, res) => {
   const { department, rate, comments, appointmentId } = req.body;
@@ -159,17 +173,17 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // Delete feedback
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id/:userId', upload, async (req, res) => {
   try {
     const feedback = await Feedback.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.id,
+      _id: req.params.id
     });
     if (!feedback) {
       return res.status(404).json({ error: 'Feedback not found or unauthorized' });
     }
     res.status(200).json({ message: 'Feedback deleted successfully.' });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: 'Failed to delete feedback', details: error.message });
   }
 });
